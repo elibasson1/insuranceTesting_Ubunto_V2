@@ -8,10 +8,8 @@ pipeline {
     }
 
     environment {
-        // מזהה ייחודי לכל Build כדי למנוע התנגשויות בתיקיות Allure
-        BUILD_ID_UNIQUE = "${env.BUILD_NUMBER}_${UUID.randomUUID().toString()}"
-        ALLURE_RESULTS_DIR = "allure-results-${BUILD_ID_UNIQUE}"
-        ALLURE_REPORT_DIR = "allure-report-html-${BUILD_ID_UNIQUE}"
+        ALLURE_RESULTS_DIR = "allure-results-${env.BUILD_NUMBER}"
+        ALLURE_REPORT_DIR = "allure-report-html-${env.BUILD_NUMBER}"
     }
 
     stages {
@@ -51,9 +49,9 @@ pipeline {
                     insurance-tests allure generate /app/allure-results --clean -o /app/allure-report-html
                 """
 
-                sh "zip -r allure-report-${BUILD_ID_UNIQUE}.zip ${ALLURE_RESULTS_DIR} ${ALLURE_REPORT_DIR}"
+                sh "zip -r allure-report-${env.BUILD_NUMBER}.zip ${ALLURE_RESULTS_DIR} ${ALLURE_REPORT_DIR}"
 
-                archiveArtifacts artifacts: "allure-report-${BUILD_ID_UNIQUE}.zip", followSymlinks: false
+                archiveArtifacts artifacts: "allure-report-${env.BUILD_NUMBER}.zip", followSymlinks: false
             }
         }
     }
