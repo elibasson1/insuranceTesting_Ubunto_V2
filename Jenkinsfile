@@ -2,45 +2,58 @@ pipeline {
     agent {
         label 'DemoNodeAgent'
     }
-    options {
-        skipDefaultCheckout(true) // מונע checkout אוטומטי על ה-controller
-    }
-    stages {
-        stage('Checkout & Build') {
-            steps {
-                echo 'Cleaning workspace of previous build'
-                sh 'rm -rf insuranceTesting_Ubunto'
-               // echo 'Cloning repository and building project'
-                sh 'git clone https://github.com/elibasson1/insuranceTesting_Ubunto.git'
 
-                dir('insuranceTesting_Ubunto') {
-                    sh 'python3 -m venv venv'
-                    sh 'venv/bin/pip install -r requirements.txt'
-                }
+    options {
+        skipDefaultCheckout(true)
+    }
+
+    environment {
+        // מזהה ייחודי לכל Build כדי למנוע התנגשויות בתיקיות Allure
+        BUILD_ID_UNIQUE = "${env.BUILD_NUMBER}_${UUID.randomUUID().toString()}"
+        ALLURE_RESULTS_DIR = "allure-results-${BUILD_ID_UNIQUE}"
+        ALLURE_REPORT_DIR = "allure-report-html-${BUILD_ID_UNIQUE}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
             }
         }
-        stage('Run Tests') {
+
+        stage('Build Docker Image') {
             steps {
-                echo 'Running tests'
-                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                    dir('insuranceTesting_Ubunto/Tests') {
-                        sh "pytest -v -s --alluredir=allure-results"
-                    }
-                }
+                echo 'Building Docker image'
+                sh 'docker build -t insurance-tests .'
+            }
+        }
+
+        stage('Run Tests in Docker') {
+            steps {
+                echo 'Running tests inside Docker container'
+                sh """
+                mkdir -p ${ALLURE_RESULTS_DIR}
+                docker run --rm -v \$PWD/${ALLURE_RESULTS_DIR}:/app/allure-results insurance-tests
+                """
             }
         }
     }
+
     post {
         always {
-            dir('insuranceTesting_Ubunto/Tests') {
-                // Generate the Allure report from the correct results folder
-                sh 'allure generate allure-results --clean -o allure-report-html'
+            echo 'Generating Allure Report and Archiving'
+            script {
+                sh """
+                mkdir -p ${ALLURE_REPORT_DIR}
+                docker run --rm \
+                    -v \$PWD/${ALLURE_RESULTS_DIR}:/app/allure-results \
+                    -v \$PWD/${ALLURE_REPORT_DIR}:/app/allure-report-html \
+                    insurance-tests allure generate /app/allure-results --clean -o /app/allure-report-html
+                """
 
-                // Compress both allure-results and allure-report-html into a single ZIP file
-                sh 'zip -r allure-report.zip allure-results allure-report-html'
+                sh "zip -r allure-report-${BUILD_ID_UNIQUE}.zip ${ALLURE_RESULTS_DIR} ${ALLURE_REPORT_DIR}"
 
-                // Archive the single ZIP file to the Jenkins server
-                archiveArtifacts artifacts: 'allure-report.zip', followSymlinks: false
+                archiveArtifacts artifacts: "allure-report-${BUILD_ID_UNIQUE}.zip", followSymlinks: false
             }
         }
     }
