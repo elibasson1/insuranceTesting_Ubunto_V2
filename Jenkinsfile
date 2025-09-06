@@ -35,7 +35,7 @@ pipeline {
             allure([
                 includeProperties: false,
                 jdk: '',
-                commandline: 'allure',   // השם שנתת בהגדרת הכלי
+                commandline: 'ALLURE_LINUX',   // השם שנתת בהגדרת הכלי
                 reportBuildPolicy: 'ALWAYS',
                 results: [[path: "${ALLURE_RESULTS_DIR}"]]
             ])
