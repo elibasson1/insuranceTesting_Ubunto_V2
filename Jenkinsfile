@@ -1,7 +1,5 @@
 pipeline {
-    agent {
-        label 'DemoNodeAgent'
-    }
+    agent { label 'DemoNodeAgent' }
 
     environment {
         ALLURE_RESULTS_DIR = "allure-results-${env.BUILD_NUMBER}"
@@ -24,7 +22,8 @@ pipeline {
             steps {
                 sh """
                 mkdir -p ${ALLURE_RESULTS_DIR}
-                docker run --rm -v \$PWD/${ALLURE_RESULTS_DIR}:/app/allure-results insurance-tests
+                docker run --rm -v \$PWD/${ALLURE_RESULTS_DIR}:/app/allure-results insurance-tests \
+                    pytest -v -s --alluredir=/app/allure-results
                 """
             }
         }
@@ -35,9 +34,9 @@ pipeline {
             allure([
                 includeProperties: false,
                 jdk: '',
-                commandline: 'ALLURE_LINUX',   // השם שנתת בהגדרת הכלי
+                commandline: 'ALLURE_LINUX',
                 reportBuildPolicy: 'ALWAYS',
-                 results: [[path: 'insuranceTesting_Ubunto/Tests/allure-results']]
+                results: [[path: "${ALLURE_RESULTS_DIR}"]]
             ])
         }
     }
