@@ -37,7 +37,7 @@ pipeline {
                 jdk: '',
                 commandline: 'ALLURE_LINUX',   // השם שנתת בהגדרת הכלי
                 reportBuildPolicy: 'ALWAYS',
-                results: [[path: "${ALLURE_RESULTS_DIR}"]]
+                 results: [[path: 'insuranceTesting_Ubunto/Tests/allure-results']]
             ])
         }
     }
